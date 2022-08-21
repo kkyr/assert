@@ -1,152 +1,163 @@
 package assert
 
 import (
-	"bytes"
+	"errors"
 	"fmt"
 	"github.com/google/go-cmp/cmp"
 	"reflect"
 	"testing"
-	"text/template"
 )
 
-// New creates a new Asserter with default options.
-func New(t *testing.T) *Asserter {
-	asserter := new()
-	asserter.t = t
-	return asserter
+// New creates a new Assert that reports failures to tb.
+func New(tb testing.TB) *Assert {
+	return &Assert{tb: tb}
 }
 
-func new() *Asserter {
-	return &Asserter{
-		required: false,
-		tmpl:     template.Must(template.New("").Parse(DefaultTmpl)),
-		gotText:  DefaultGotText,
-		gotVerb:  DefaultGotVerb,
-		wantText: DefaultWantText,
-		wantVerb: DefaultWantVerb,
-		fieldMsg: "",
-	}
+type Assert struct {
+	tb      testing.TB
+	require bool
+	field   string
 }
 
-type Asserter struct {
-	t        testing.TB
-	required bool
+func (a *Assert) Equal(want, got any) bool {
+	a.tb.Helper()
 
-	tmpl *template.Template
-
-	gotText  string
-	gotVerb  string
-	wantText string
-	wantVerb string
-
-	fieldMsg string
-}
-
-func (a *Asserter) Equal(got any, want any) bool {
-	return a.equal(a.t, got, want)
-}
-
-func (a *Asserter) Nil(got any) bool {
-	return a.nil(a.t, got)
-}
-
-func (a *Asserter) Field(field string) *Asserter {
-	return a.field(a.t, field)
-}
-
-func (a *Asserter) Require() *Asserter {
-	return a.require(a.t)
-}
-
-func (a *Asserter) copy() *Asserter {
-	return &Asserter{
-		t:        a.t,
-		required: a.required,
-		tmpl:     a.tmpl,
-		gotText:  a.gotText,
-		gotVerb:  a.gotVerb,
-		wantText: a.wantText,
-		wantVerb: a.wantVerb,
-		fieldMsg: a.fieldMsg,
-	}
-}
-
-func (a *Asserter) equal(t testing.TB, got any, want any) bool {
-	t.Helper()
-	if !cmp.Equal(got, want) {
-		a.fail(t, got, want)
+	if diff := cmp.Diff(want, got); diff != "" {
+		msg := fmt.Sprintf("(-want, +got):\n%s", diff)
+		a.fail(a.addField(msg))
 		return false
 	}
+
 	return true
 }
 
-func (a *Asserter) nil(t testing.TB, got any) bool {
-	t.Helper()
-	if !isNil(got) {
-		a.fail(t, got, nil)
+func (a *Assert) NotEqual(want, got any) bool {
+	a.tb.Helper()
+
+	if cmp.Equal(want, got) {
+		a.fail(a.format("equal values", "non-equal values"))
 		return false
 	}
+
 	return true
 }
 
-func (a *Asserter) field(t testing.TB, field string) *Asserter {
-	cpy := a.copy()
+func (a *Assert) Nil(value any) bool {
+	a.tb.Helper()
 
-	cpy.fieldMsg = field
-	cpy.t = t
+	if !isNil(value) {
+		a.fail(a.format(nil, value))
+		return false
+	}
 
-	return cpy
+	return true
 }
 
-func (a *Asserter) require(t testing.TB) *Asserter {
-	cpy := a.copy()
+func (a *Assert) NotNil(value any) bool {
+	a.tb.Helper()
 
-	cpy.required = true
-	cpy.t = t
+	if isNil(value) {
+		a.fail(a.format("<non-nil>", "<nil>"))
+		return false
+	}
 
-	return cpy
+	return true
 }
 
-func (a *Asserter) fail(t testing.TB, got, want any) {
-	if a.required {
-		t.Fatal(a.format(got, want))
+func (a *Assert) ErrorIs(err, target error) bool {
+	a.tb.Helper()
+
+	if !errors.Is(err, target) {
+		a.fail(a.addField("no error in err's chain matches target"))
+		return false
+	}
+
+	return true
+}
+
+func (a *Assert) Zero(value any) bool {
+	a.tb.Helper()
+
+	if !isZero(value) {
+		a.fail(a.format("zero value", value))
+		return false
+	}
+
+	return true
+}
+
+func (a *Assert) NotZero(value any) bool {
+	a.tb.Helper()
+
+	if isZero(value) {
+		a.fail(a.format("non-zero value", value))
+		return false
+	}
+
+	return true
+}
+
+func (a *Assert) Field(value string) *Assert {
+	assertCpy := a.copy()
+	assertCpy.field = value
+	return assertCpy
+}
+
+func (a *Assert) Require() *Assert {
+	assertCpy := a.copy()
+	assertCpy.require = true
+	return assertCpy
+}
+
+func (a *Assert) copy() *Assert {
+	return &Assert{
+		tb:      a.tb,
+		require: a.require,
+		field:   a.field,
+	}
+}
+
+func (a *Assert) fail(args ...any) {
+	a.tb.Helper()
+	if a.require {
+		a.tb.Fatal(args...)
 	} else {
-		t.Error(a.format(got, want))
+		a.tb.Error(args...)
 	}
 }
 
-func (a *Asserter) format(got any, want any) string {
-	var buf bytes.Buffer
-	a.tmpl.Execute(&buf, a.data())
-	return fmt.Sprintf(buf.String(), got, want)
+func (a *Assert) format(want, got any) string {
+	return a.addField(fmt.Sprintf("want %v, got %v", want, got))
 }
 
-func (a *Asserter) data() map[string]string {
-	return map[string]string{
-		GotTextKey:  a.gotText,
-		GotVerbKey:  a.gotVerb,
-		WantTextKey: a.wantText,
-		WantVerbKey: a.wantVerb,
-		FieldValKey: a.fieldMsg,
+func (a *Assert) addField(s string) string {
+	if a.field != "" {
+		s = fmt.Sprintf("%s: %s", a.field, s)
 	}
+	return s
 }
 
-var std = new()
+func isZero(value any) bool {
+	if value == nil {
+		return true
+	}
 
-func Equal(t testing.TB, got any, want any) bool {
-	return std.equal(t, got, want)
-}
+	if i, ok := value.(interface{ IsZero() bool }); ok {
+		return i.IsZero()
+	}
 
-func Nil(t testing.TB, got any) bool {
-	return std.nil(t, got)
-}
-
-func Field(t testing.TB, field string) *Asserter {
-	return std.field(t, field)
-}
-
-func Require(t testing.TB) *Asserter {
-	return std.require(t)
+	switch rv := reflect.ValueOf(value); rv.Kind() {
+	case reflect.Chan, reflect.Map, reflect.Slice:
+		return rv.Len() == 0
+	case reflect.Ptr:
+		if rv.IsNil() {
+			return true
+		}
+		// dereference pointer and recursively test it
+		return isZero(rv.Elem().Interface())
+	default:
+		return rv.IsZero()
+	}
 }
 
 func isNil(object interface{}) bool {
@@ -167,9 +178,4 @@ func isNil(object interface{}) bool {
 	return false
 }
 
-// TODO: remove template
-// TODO: add assert.Zero()
-// TODO: add assert.NotZero()
-// TODO: add assert.NotNil()
-// TODO: add assert.ErrIs()
 // TODO: add assert.Len()

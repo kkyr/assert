@@ -28,7 +28,7 @@ func TestSuperhero(t *testing.T) {
 
 ### Field name
 
-You can optionally specify a field name for additional context during failures:
+You can optionally specify a Field name for additional context during failures:
 	
 ```go
 func TestSuperhero(t *testing.T) {
