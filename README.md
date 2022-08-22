@@ -32,11 +32,11 @@ func TestPerson(t *testing.T) {
     // Output:
     // --- FAIL: TestPerson (0.00s)
     //     person_test.go:15: Names: (-want, +got):
-    //         []string{
-    //             "John", 
-    //         -   "Jim", 
-    //         +   "Joe",
-    //    }
+    //              []string{
+    //                    "John", 
+    //            -       "Jim", 
+    //            +       "Joe",
+    //              }
 }
 ```
 
