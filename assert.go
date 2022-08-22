@@ -3,22 +3,33 @@ package assert
 import (
 	"errors"
 	"fmt"
-	"github.com/google/go-cmp/cmp"
 	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
-// New creates a new Assert that reports failures to tb.
+// New returns a new instance of Assert that reports any assertion
+// failures to tb.
 func New(tb testing.TB) *Assert {
 	return &Assert{tb: tb}
 }
 
+// Assert is a type that can make assertions.
+//
+// By default, assertion failures are reported using t.Error.
 type Assert struct {
-	tb      testing.TB
+	tb testing.TB
+
+	// if set to true will call t.Fatal instead of t.Error on failures.
 	require bool
-	field   string
+
+	// if set will prefix this in failure messages.
+	field string
 }
 
+// Equal asserts that want and got are equal.
+// See [cmp.Equal] for details on how equality is determined.
 func (a *Assert) Equal(want, got any) bool {
 	a.tb.Helper()
 
@@ -31,6 +42,8 @@ func (a *Assert) Equal(want, got any) bool {
 	return true
 }
 
+// NotEqual asserts that want and got are not equal.
+// See [cmp.Equal] for details on how equality is determined.
 func (a *Assert) NotEqual(want, got any) bool {
 	a.tb.Helper()
 
@@ -42,6 +55,7 @@ func (a *Assert) NotEqual(want, got any) bool {
 	return true
 }
 
+// Nil asserts that value is nil.
 func (a *Assert) Nil(value any) bool {
 	a.tb.Helper()
 
@@ -53,6 +67,7 @@ func (a *Assert) Nil(value any) bool {
 	return true
 }
 
+// NotNil asserts that value is not nil.
 func (a *Assert) NotNil(value any) bool {
 	a.tb.Helper()
 
@@ -64,6 +79,8 @@ func (a *Assert) NotNil(value any) bool {
 	return true
 }
 
+// ErrorIs asserts that at least one of the error in err's chain matches target.
+// See [errors.Is] for details on how a matching error is found.
 func (a *Assert) ErrorIs(err, target error) bool {
 	a.tb.Helper()
 
@@ -75,6 +92,8 @@ func (a *Assert) ErrorIs(err, target error) bool {
 	return true
 }
 
+// Zero asserts that value is the zero value for its type.
+// Pointer values are determined based on the zero value of the referenced values.
 func (a *Assert) Zero(value any) bool {
 	a.tb.Helper()
 
@@ -86,6 +105,8 @@ func (a *Assert) Zero(value any) bool {
 	return true
 }
 
+// NotZero asserts that value is not the zero value for its type.
+// Pointer values are determined based on the zero value of the referenced values.
 func (a *Assert) NotZero(value any) bool {
 	a.tb.Helper()
 
@@ -97,12 +118,19 @@ func (a *Assert) NotZero(value any) bool {
 	return true
 }
 
-func (a *Assert) Field(value string) *Assert {
+// Field returns a copy of Assert that will prefix failure messages with s.
+//
+//	assert.Field("Age").Equal(18, 20)
+//
+// This should be used to enrich failure messages with information about the
+// field that is being asserted.
+func (a *Assert) Field(s string) *Assert {
 	assertCpy := a.copy()
-	assertCpy.field = value
+	assertCpy.field = s
 	return assertCpy
 }
 
+// Require returns a copy of Assert that will call t.Fatal on failures.
 func (a *Assert) Require() *Assert {
 	assertCpy := a.copy()
 	assertCpy.require = true

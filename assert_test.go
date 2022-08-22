@@ -12,7 +12,7 @@ import (
 type mockT struct {
 	*testing.T
 
-	// print failures to stdout
+	// if true will print failures to stdout
 	print bool
 }
 
