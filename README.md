@@ -1,16 +1,14 @@
 # assert
 
-assert is a library for making assertions in Go tests.
+assert is a Go library for making assertions in tests.
 
-## Usage
-
-Go get the package:
+## Installation
 
 ```shell
-$ go get -u github.com/kkyr/assert@latest
+$ go get github.com/kkyr/assert@latest
 ```
 
-Use in your tests:
+## Usage
 
 ```go
 package person_test
