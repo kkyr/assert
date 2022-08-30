@@ -136,3 +136,54 @@ func TestAssert_Equal(t *testing.T) {
 		})
 	}
 }
+
+func TestAssert_Nil(t *testing.T) {
+	for _, tc := range []struct {
+		value  any
+		result bool
+	}{
+		// nil values
+		{nil, true},
+		{(*struct{})(nil), true},
+		{([]string)(nil), true},
+
+		// non-nil cases
+		{0, false},
+		{"", false},
+		{[]string{}, false},
+	} {
+		t.Run(fmt.Sprintf("value=%#v", tc.value), func(t *testing.T) {
+			assert := assert.New(mockT{})
+
+			if nResult := assert.Nil(tc.value); nResult != tc.result {
+				t.Fatalf("Nil(%#v)=%t, want %t", tc.value, nResult, tc.result)
+			} else if nnResult := assert.NotNil(tc.value); nnResult == nResult {
+				t.Fatalf("Nil()=NotNil()")
+			}
+		})
+	}
+}
+
+func TestAssert_Field(t *testing.T) {
+	t.Run("returns copy of struct", func(t *testing.T) {
+		assert := assert.New(&mockT{})
+
+		cpy := assert.Field("")
+
+		if assert == cpy {
+			t.Fatalf("Field() returns struct with same reference")
+		}
+	})
+}
+
+func TestAssert_Require(t *testing.T) {
+	t.Run("returns copy of struct", func(t *testing.T) {
+		assert := assert.New(&mockT{})
+
+		cpy := assert.Require()
+
+		if assert == cpy {
+			t.Fatalf("Require() returns struct with same reference")
+		}
+	})
+}
