@@ -43,3 +43,8 @@ func TestPerson(t *testing.T) {
 ## Documentation
 
 <a href="https://pkg.go.dev/github.com/kkyr/assert?tab=doc"><img src="https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white" alt="godoc" title="godoc"/></a>
+
+## Roadmap
+
+- [ ] Add assert.Len()
+- [ ] Increase UT coverage

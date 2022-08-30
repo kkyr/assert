@@ -205,5 +205,3 @@ func isNil(object interface{}) bool {
 
 	return false
 }
-
-// TODO: add assert.Len()
