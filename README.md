@@ -1,6 +1,14 @@
+<p align="center">
+    <a href="https://pkg.go.dev/github.com/kkyr/assert?tab=doc"><img src="https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white" alt="godoc" title="godoc"/></a>
+    <a href="https://github.com/kkyr/assert/tags"><img src="https://img.shields.io/github/v/tag/kkyr/assert" alt="semver tag" title="semver tag"/></a>
+    <a href="https://goreportcard.com/report/github.com/kkyr/assert"><img src="https://goreportcard.com/badge/github.com/kkyr/assert" alt="go report card" title="go report card"/></a>
+    <a href="https://coveralls.io/github/kkyr/assert?branch=main"><img src="https://coveralls.io/repos/github/kkyr/assert/badge.svg?branch=main" alt="coverage status" title="coverage status"/></a>
+    <a href="https://github.com/kkyr/assert/blob/main/LICENSE"><img src="https://img.shields.io/github/license/kkyr/assert" alt="license" title="license"/></a>
+</p>
+
 # assert
 
-assert is a Go library for making assertions in tests.
+assert is a Go library that helps you make assertions in tests, printing a human-readable report of the differences between two values in assertions that fail.
 
 ## Installation
 
