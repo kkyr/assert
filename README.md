@@ -44,5 +44,5 @@ func TestPerson(t *testing.T) {
 
 ## Roadmap
 
-- [ ] Add assert.Len()
+- [x] Add assert.Len()
 - [ ] Increase UT coverage

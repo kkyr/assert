@@ -100,6 +100,19 @@ func ExampleAssert_NotZero() {
 	// timeout: want non-zero value, got 0s
 }
 
+func ExampleAssert_Len() {
+	t := mockT{print: true}
+	str := "hello world"
+	num := 2
+
+	assert.New(t).Len(str, 5)
+	assert.New(t).Len(num, 1)
+
+	// Output:
+	// want len() = 5, got 11
+	// could not apply len() to int
+}
+
 func TestAssert_Equal(t *testing.T) {
 	number := 5
 

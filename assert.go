@@ -34,8 +34,7 @@ func (a *Assert) Equal(want, got any) bool {
 	a.tb.Helper()
 
 	if diff := cmp.Diff(want, got); diff != "" {
-		msg := fmt.Sprintf("(-want, +got):\n%s", diff)
-		a.fail(a.addField(msg))
+		a.fail(fmt.Sprintf("(-want, +got):\n%s", diff))
 		return false
 	}
 
@@ -85,7 +84,7 @@ func (a *Assert) ErrorIs(err, target error) bool {
 	a.tb.Helper()
 
 	if !errors.Is(err, target) {
-		a.fail(a.addField("no error in err's chain matches target"))
+		a.fail("no error in err's chain matches target")
 		return false
 	}
 
@@ -118,6 +117,25 @@ func (a *Assert) NotZero(value any) bool {
 	return true
 }
 
+// Len asserts that value has length n.
+// If len() cannot be applied to value, the test fails.
+func (a *Assert) Len(value any, n int) bool {
+	a.tb.Helper()
+
+	got, ok := getLen(value)
+	if !ok {
+		a.fail(fmt.Sprintf("could not apply len() to %T", value))
+		return false
+	}
+
+	if got != n {
+		a.fail(fmt.Sprintf("want len() = %v, got %v", n, got))
+		return false
+	}
+
+	return true
+}
+
 // Field returns a copy of Assert that will prefix failure messages with s.
 //
 //	assert.Field("Age").Equal(18, 20)
@@ -125,16 +143,16 @@ func (a *Assert) NotZero(value any) bool {
 // This should be used to enrich failure messages with information about the
 // field that is being asserted.
 func (a *Assert) Field(s string) *Assert {
-	assertCpy := a.copy()
-	assertCpy.field = s
-	return assertCpy
+	cpy := a.copy()
+	cpy.field = s
+	return cpy
 }
 
 // Require returns a copy of Assert that will call t.Fatal on failures.
 func (a *Assert) Require() *Assert {
-	assertCpy := a.copy()
-	assertCpy.require = true
-	return assertCpy
+	cpy := a.copy()
+	cpy.require = true
+	return cpy
 }
 
 func (a *Assert) copy() *Assert {
@@ -145,24 +163,22 @@ func (a *Assert) copy() *Assert {
 	}
 }
 
-func (a *Assert) fail(args ...any) {
+func (a *Assert) fail(msg string) {
 	a.tb.Helper()
+
+	if a.field != "" {
+		msg = fmt.Sprintf("%s: %s", a.field, msg)
+	}
+
 	if a.require {
-		a.tb.Fatal(args...)
+		a.tb.Fatal(msg)
 	} else {
-		a.tb.Error(args...)
+		a.tb.Error(msg)
 	}
 }
 
 func (a *Assert) format(want, got any) string {
-	return a.addField(fmt.Sprintf("want %v, got %v", want, got))
-}
-
-func (a *Assert) addField(s string) string {
-	if a.field != "" {
-		s = fmt.Sprintf("%s: %s", a.field, s)
-	}
-	return s
+	return fmt.Sprintf("want %v, got %v", want, got)
 }
 
 func isZero(value any) bool {
@@ -188,20 +204,35 @@ func isZero(value any) bool {
 	}
 }
 
-func isNil(object interface{}) bool {
-	if object == nil {
+func isNil(value any) bool {
+	if value == nil {
 		return true
 	}
 
-	value := reflect.ValueOf(object)
-	kind := value.Kind()
+	rv := reflect.ValueOf(value)
+	kind := rv.Kind()
 
 	nilable := []reflect.Kind{reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice}
 	for _, k := range nilable {
 		if kind == k {
-			return value.IsNil()
+			return rv.IsNil()
 		}
 	}
 
 	return false
+}
+
+func getLen(value any) (int, bool) {
+	rv := reflect.ValueOf(value)
+
+	switch k := rv.Kind(); k {
+	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
+		return rv.Len(), true
+	case reflect.Ptr:
+		if rv.Type().Elem().Kind() == reflect.Array {
+			return rv.Type().Elem().Len(), true
+		}
+	}
+
+	return 0, false
 }
